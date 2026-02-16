@@ -35,7 +35,3 @@ def takecommand():
         return ""
     
     return query.lower()
-
-
-
-speak("How are you my friend My name is Ritik Swaraj")
