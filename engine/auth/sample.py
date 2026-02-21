@@ -2,102 +2,158 @@ import cv2
 import os
 import sys
 
-cam = cv2.VideoCapture(0, cv2.CAP_DSHOW) #create a video capture object which is helpful to capture videos through webcam
+print("="*70)
+print("FACE SAMPLE CAPTURE PROGRAM")
+print("="*70)
 
-# Check if camera opened successfully
-if not cam.isOpened():
-    print("ERROR: Failed to open camera. Please check if your camera is connected and not in use.")
-    exit()
-
-cam.set(3, 640) # set video FrameWidth
-cam.set(4, 480) # set video FrameHeight
-
-# Load classifier with proper path handling
+# Get the script directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
+print(f"Script directory: {script_dir}")
+
+# Initialize camera
+print("\nInitializing camera...")
+cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
+if not cam.isOpened():
+    print("❌ ERROR: Failed to open camera. Check if camera is connected and not in use.")
+    sys.exit(1)
+
+print("✓ Camera initialized successfully")
+
+# Set camera properties
+cam.set(3, 640)  # Frame width
+cam.set(4, 480)  # Frame height
+
+# Load Haar Cascade classifier
 cascade_path = os.path.join(script_dir, 'haarcascade_frontalface_default.xml')
+print(f"Loading classifier from: {cascade_path}")
+
 detector = cv2.CascadeClassifier(cascade_path)
 
-#Haar Cascade classifier is an effective object detection approach
 if detector.empty():
-    print(f"ERROR: Failed to load Haar Cascade classifier from {cascade_path}")
-    print("Make sure 'haarcascade_frontalface_default.xml' exists in the engine/auth directory")
+    print(f"❌ ERROR: Could not load classifier from {cascade_path}")
     cam.release()
-    exit()
+    sys.exit(1)
 
-print(f"Script directory: {script_dir}")
-print(f"Cascade loaded from: {cascade_path}")
+print("✓ Classifier loaded successfully")
 
-face_id = input("Enter a Numeric user ID  here:  ")
-#Use integer ID for every new face (0,1,2,3,4,5,6,7,8,9........)
+# Check write permissions
+test_write_path = os.path.join(script_dir, '.write_test')
+try:
+    with open(test_write_path, 'w') as f:
+        f.write('test')
+    os.remove(test_write_path)
+    print("✓ Directory is writable")
+except Exception as e:
+    print(f"❌ ERROR: Cannot write to directory: {e}")
+    cam.release()
+    sys.exit(1)
 
-print("Taking samples, look at camera ....... ")
-count = 0 # Initializing sampling face count
-face_detected_count = 0
-
-# Ensure samples directory exists
+# Create samples directory
 samples_dir = os.path.join(script_dir, 'samples')
-if not os.path.exists(samples_dir):
-    os.makedirs(samples_dir)
-    print(f"Created samples directory: {samples_dir}")
-else:
-    print(f"Using existing samples directory: {samples_dir}")
+os.makedirs(samples_dir, exist_ok=True)
+print(f"✓ Samples directory ready: {samples_dir}")
 
-print(f"Full path where samples will be saved: {samples_dir}")
-print("-" * 60)
+print("\n" + "-"*70)
+face_id = input("Enter a Numeric user ID here: ")
+print("-"*70)
+print("Starting face capture...")
+print("  - Position your face in front of the camera")
+print("  - Press 'ESC' to stop")
+print("  - Need 100 samples for good training")
+print("-"*70 + "\n")
 
-while True:
+count = 0
+frame_count = 0
+face_found_frames = 0
 
-    ret, img = cam.read() #read the frames using the above created object
-    
-    if not ret:
-        print("ERROR: Failed to read frame from camera")
-        break
+try:
+    while True:
+        ret, frame = cam.read()
         
-    converted_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) #The function converts an input image from one color space to another
-    faces = detector.detectMultiScale(converted_image, 1.3, 5)
-    
-    # Display number of faces detected on window
-    display_img = img.copy()
-    cv2.putText(display_img, f"Faces detected: {len(faces)} | Samples: {count}", 
-                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
-    if len(faces) > 0:
-        face_detected_count += 1
-
-    for (x,y,w,h) in faces:
-
-        cv2.rectangle(display_img, (x,y), (x+w,y+h), (255,0,0), 2) #used to draw a rectangle on any image
-        count += 1
-
-        sample_path = os.path.join(samples_dir, f"face.{face_id}.{count}.jpg")
+        if not ret:
+            print("❌ ERROR: Failed to read frame from camera")
+            break
         
-        # Save the grayscale face image
-        success = cv2.imwrite(sample_path, converted_image[y:y+h,x:x+w])
+        frame_count += 1
         
-        # To capture & Save images into the datasets folder
-        if success:
-            print(f"✓ Sample {count} saved: {sample_path}")
-            sys.stdout.flush()  # Force flush output
-        else:
-            print(f"✗ ERROR: Failed to save sample {count} to: {sample_path}")
-            sys.stdout.flush()
+        # Convert to grayscale for detection
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces (lowered threshold for better detection)
+        faces = detector.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=4, minSize=(30, 30))
+        
+        # Prepare display frame
+        display_frame = frame.copy()
+        
+        # Add info text
+        info_text = f"Frame: {frame_count} | Faces: {len(faces)} | Samples: {count}/100"
+        cv2.putText(display_frame, info_text, (10, 30), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        
+        # Process detected faces
+        if len(faces) > 0:
+            face_found_frames += 1
+            
+            for (x, y, w, h) in faces:
+                # Draw rectangle around face
+                cv2.rectangle(display_frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                
+                count += 1
+                
+                # Extract and save face
+                face_roi = gray[y:y+h, x:x+w]
+                
+                # Create filename
+                filename = f"face.{face_id}.{count}.jpg"
+                filepath = os.path.join(samples_dir, filename)
+                
+                # Save the image
+                success = cv2.imwrite(filepath, face_roi)
+                
+                if success:
+                    print(f"✓ Sample {count:3d} saved: {filename}")
+                    sys.stdout.flush()
+                else:
+                    print(f"❌ Sample {count} FAILED to save: {filepath}")
+                    sys.stdout.flush()
+        
+        # Always show the camera window
+        cv2.imshow('Face Capture - Press ESC to exit', display_frame)
+        
+        # Check for key press
+        key = cv2.waitKey(100) & 0xff
+        if key == 27:  # ESC key
+            print("\n⚠ ESC pressed - Stopping capture")
+            break
+        elif count >= 100:
+            print("\n✓ 100 samples reached!")
+            break
 
-    # Display the frame always (not just when face detected)
-    cv2.imshow('Face Capture - Press ESC to exit', display_img) #Used to display an image in a window
+except Exception as e:
+    print(f"\n❌ ERROR during capture: {e}")
 
-    k = cv2.waitKey(100) & 0xff # Waits for a pressed key
-    if k == 27: # Press 'ESC' to stop
-        print("\nESC pressed - Stopping capture")
-        break
-    elif count >= 100: # Take 100 samples (More sample --> More accuracy)
-         print(f"\nTarget reached - 100 samples captured")
-         break
-
-print(f"\n{'='*60}")
-print(f"Total faces detected in stream: {face_detected_count}")
+# Cleanup
+print("\n" + "="*70)
+print("CAPTURE SUMMARY")
+print("="*70)
+print(f"Total frames processed: {frame_count}")
+print(f"Frames with faces detected: {face_found_frames}")
 print(f"Total samples saved: {count}")
-print(f"Samples location: {samples_dir}")
-print(f"Samples taken now closing the program....")
-print(f"{'='*60}")
+print(f"Save location: {samples_dir}")
+
+# List saved files
+saved_files = [f for f in os.listdir(samples_dir) if f.startswith(f"face.{face_id}")]
+print(f"Files in folder: {len(saved_files)}")
+if saved_files:
+    print("\nSaved files:")
+    for f in sorted(saved_files)[:5]:
+        print(f"  - {f}")
+    if len(saved_files) > 5:
+        print(f"  ... and {len(saved_files) - 5} more")
+
+print("="*70)
+print("Closing camera and windows...")
 cam.release()
 cv2.destroyAllWindows()
+print("✓ Program finished")
