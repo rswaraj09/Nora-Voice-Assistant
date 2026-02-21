@@ -1,4 +1,7 @@
-.env
+.venv
 contacts.csv
 nora.db
 .vscode
+samples
+__pycache__
+*.pyc
