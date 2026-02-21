@@ -4,3 +4,7 @@ pyttsx3
 SpeechRecognition
 PyAudio
 pipwin
+pywhatkit
+pvporcupine==1.9.5
+opencv-python
+opencv-contrib-python

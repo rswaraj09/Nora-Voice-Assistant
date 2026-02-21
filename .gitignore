@@ -1,1 +1,4 @@
-.venv
+.env
+contacts.csv
+nora.db
+.vscode

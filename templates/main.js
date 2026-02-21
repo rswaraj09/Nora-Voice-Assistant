@@ -1,49 +1,18 @@
 $(document).ready(function () {
 
-    // Initialize eel if available (Eel backend)
-    try {
-        if (typeof eel !== 'undefined') {
-            eel.init()()
-        }
-    } catch (e) {
-        console.log('Eel not available - running in web mode');
-    }
+    eel.init()()
 
-    // Wait a bit for libraries to fully load
-    setTimeout(function() {
-        // Debug: Check if element exists
-        var textElement = $('.text');
-        console.log('Text element found:', textElement.length);
-        console.log('Text element HTML:', textElement.html());
-        console.log('Textillate available:', typeof $.fn.textillate);
+    $('.text').textillate({
+        loop: true,
+        sync: true,
+        in: {
+            effect: "bounceIn",
+        },
+        out: {
+            effect: "bounceOut",
+        },
 
-        // Initialize Textillate
-        if (textElement.length && typeof $.fn.textillate === 'function') {
-            textElement.textillate({
-                loop: true,
-                sync: true,
-                minDisplayTime: 2000,
-                initialDelay: 1000,
-                in: {
-                    effect: "bounceIn",
-                    duration: 1000,
-                    delay: 100,
-                    delayScale: 1.2,
-                    sync: false,
-                },
-                out: {
-                    effect: "bounceOut",
-                    duration: 1000,
-                    delay: 100,
-                    delayScale: 1.2,
-                    sync: false,
-                },
-            });
-            console.log('Textillate initialized successfully');
-        } else {
-            console.log('Textillate failed to initialize - element or library not found');
-        }
-    }, 500);
+    });
 
     // Siri configuration
     var siriWave = new SiriWave({
@@ -74,41 +43,10 @@ $(document).ready(function () {
     // mic button click event
 
     $("#MicBtn").click(function () {
-        try {
-            // Play the start sound
-            if (typeof eel !== 'undefined') {
-                eel.playAssistantSound();
-            }
-            
-            // Hide the circle
-            $("#Oval").attr("hidden", true);
-            // Show the Siri wave
-            $("#SiriWave").attr("hidden", false);
-            
-            // Restart siriWave to ensure it's playing
-            if (siriWave.stop) {
-                siriWave.stop();
-            }
-            if (siriWave.start) {
-                siriWave.start();
-            }
-            // Play the start sound again once Siri wave is visible (small delay)
-            setTimeout(function(){
-                try {
-                    if (typeof eel !== 'undefined') eel.playAssistantSound();
-                } catch(e){ console.warn('playAssistantSound repeat failed', e); }
-            }, 250);
-            
-            // Call backend functions
-            if (typeof eel !== 'undefined') {
-                eel.allCommands();
-            }
-        } catch (error) {
-            console.error("Error in mic button click:", error);
-            // Still show Siri wave even if there's an error
-            $("#Oval").attr("hidden", true);
-            $("#SiriWave").attr("hidden", false);
-        }
+        eel.playAssistantSound()
+        $("#Oval").attr("hidden", true);
+        $("#SiriWave").attr("hidden", false);
+        eel.allCommands()()
     });
 
 
@@ -116,38 +54,10 @@ $(document).ready(function () {
         // this would test for whichever key is 40 (down arrow) and the ctrl key at the same time
 
         if (e.key === 'j' && e.metaKey) {
-            try {
-                // Play the start sound
-                if (typeof eel !== 'undefined') {
-                    eel.playAssistantSound();
-                }
-                
-                // Hide the circle
-                $("#Oval").attr("hidden", true);
-                // Show the Siri wave
-                $("#SiriWave").attr("hidden", false);
-                
-                // Restart siriWave to ensure it's playing
-                if (siriWave.stop) {
-                    siriWave.stop();
-                }
-                if (siriWave.start) {
-                    siriWave.start();
-                }
-                // replay start sound shortly after siri wave appears
-                setTimeout(function(){
-                    try { if (typeof eel !== 'undefined') eel.playAssistantSound(); } catch(e){ console.warn(e); }
-                }, 250);
-                
-                // Call backend functions
-                if (typeof eel !== 'undefined') {
-                    eel.allCommands();
-                }
-            } catch (error) {
-                console.error("Error in keyboard shortcut:", error);
-                $("#Oval").attr("hidden", true);
-                $("#SiriWave").attr("hidden", false);
-            }
+            eel.playAssistantSound()
+            $("#Oval").attr("hidden", true);
+            $("#SiriWave").attr("hidden", false);
+            eel.allCommands()()
         }
     }
     document.addEventListener('keyup', doc_keyUp, false);
@@ -157,25 +67,9 @@ $(document).ready(function () {
 
         if (message != "") {
 
-            // Play the start sound
-            if (typeof eel !== 'undefined') {
-                eel.playAssistantSound();
-            }
-            
             $("#Oval").attr("hidden", true);
             $("#SiriWave").attr("hidden", false);
-            
-            // Restart siriWave to ensure it's playing
-            if (siriWave.stop) {
-                siriWave.stop();
-            }
-            if (siriWave.start) {
-                siriWave.start();
-            }
-            
-            if (typeof eel !== 'undefined') {
-                eel.allCommands(message);
-            }
+            eel.allCommands(message);
             $("#chatbox").val("")
             $("#MicBtn").attr('hidden', false);
             $("#SendBtn").attr('hidden', true);

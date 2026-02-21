@@ -2,11 +2,12 @@ import os
 import eel
 from engine.features import *
 from engine.command import *
+def start():
+   
+    eel.init("templates")
 
-eel.init("templates")
+    playAssistantSound()
 
-playAssistantSound()
+    os.system('start chrome.exe --app="http://localhost:8000/index.html"')
 
-os.system('start chrome.exe --app="http://localhost:8000/index.html"')
-
-eel.start('index.html',mode=None,host='localhost', block=True)
+    eel.start('index.html',mode=None,host='localhost', block=True)
